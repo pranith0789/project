@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 const Login = () => {
 
     const navigate = useNavigate()
@@ -35,7 +36,7 @@ const Login = () => {
         navigate('/signup')
     }
 
-    const handlesubmit = (event:React.FormEvent) => {
+    const handlesubmit = async (event:React.FormEvent) => {
         event.preventDefault()
         if(email.trim() && !isValidEmail(email)){
             setError("Invalid email format:")
@@ -47,7 +48,15 @@ const Login = () => {
               "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character."
             );
             return;
-          }
+        }
+
+        try{
+            const response = await axios.post('http://localhost:3000/login')
+            console.log('login successfull',response.data)
+
+        }catch(error){
+            console.log('login failed',error)
+        }
     }
   return (
     <div className="min-h-screen w-screen flex justify-center items-center bg-gray-100 bg-[url(https://wallpapers.com/images/hd/blockchain-monochrome-earth-sphere-uknrsf6rlwtyahb9.jpg)]">
