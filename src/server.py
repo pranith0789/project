@@ -182,10 +182,6 @@ def summarize_pdf(text):
 
     return " ".join(summaries)  # Combine summarized chunks
 
-
-
-    
-
 @app.post("/search-medical-terms")
 async def search_medical_terms(file: UploadFile = File(...)):
     file_path = f"temp_{file.filename}"
