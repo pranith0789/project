@@ -148,7 +148,7 @@
 // export default SignUp
 
 import { TextField } from '@mui/material/'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Button from '@mui/material/Button';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -159,6 +159,7 @@ const SignUp = () => {
     const [email,setEmail] = useState<string>('')
     const [password,setPassword] = useState<string>('')
     const [error,setError] = useState<string>('')
+    const [message,setMessage] = useState<string>('')
 
     const handlefirstname = (event:React.ChangeEvent<HTMLInputElement>) => {
         setFirst(event.target.value)
@@ -220,10 +221,24 @@ const SignUp = () => {
                 password
             });
             console.log("User registered successfully", response.data);
+            setMessage(response.data.message)
+            setError('')
+            
         } catch (error) {
             console.log("Error registering user", error);
+            setMessage('');
+            setError(error.response?.data?.message || 'Error registering user')
         }
     };
+
+    useEffect(() => {
+        if(message){
+            const timer = setTimeout(() => {
+                navigate('/')
+            },5000);
+            return () => clearTimeout(timer)
+        }
+    },[message,navigate])
     
 
   return (
@@ -260,7 +275,7 @@ const SignUp = () => {
                     value={password}
                     onChange={handlepassword}
                 />
-                {error ? (<p className='text-red-600 text-md text-center'>{error}</p>) : null}
+                
                 <Button
                     variant="contained"
                     color="primary"
@@ -273,6 +288,8 @@ const SignUp = () => {
                     <p>Already a user?</p>
                     <p className='underline cursor-pointer text-blue-600' onClick={handlenavigate}>Login</p>
                 </div>
+                {error ? (<p className='text-red-600 text-md text-center'>{error}</p>) : null}
+                {message ? (<p className='text-green-600 text-md text-center'>{message}</p>) : null}
             </div>
         </div>
     </div>

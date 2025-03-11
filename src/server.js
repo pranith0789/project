@@ -176,6 +176,8 @@ import fs from "fs";
 import axios from "axios";
 import FormData from "form-data";
 import { fileTypeFromFile } from "file-type";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 const app = express();
 app.use(cors());
@@ -185,6 +187,69 @@ mongoose.connect("mongodb://localhost:27017/Accounts")
   .then(() => console.log("✅ DB Connected"))
   .catch((err) => console.error("❌ Error connecting to MongoDB:", err));
 
+
+const userschema = new mongoose.Schema({
+    
+    firstName : {type : String , required : true},
+    lastName : {type : String, required : true},
+    email : {type : String , required : true, unique : true},
+    password : {type : String , required : true}
+
+})
+
+
+const User = mongoose.model("User",userschema,"users")
+
+app.post("/register", async(req,res) => {
+    console.log("Received registration request:",req.body)
+    const{firstName,lastName,email,password} = req.body
+
+    try{
+        const exhistingUser = await User.findOne({email})
+        if(exhistingUser){
+            console.log("Email already registered:",email)
+            return res.status(400).json({message:"Email already registered"})
+        }
+
+        const hashedPassword = await bcrypt.hash(password,10);
+        const newUser = new User({firstName,lastName,email,password:hashedPassword})
+        await newUser.save()
+
+
+        console.log("User registered:",newUser)
+        res.status(201).json({message:"user registered successfully"});
+    }catch(error){
+        console.log("Error registering user:",error)
+        res.status(500).json({message:"Error registering user"})
+    }
+})
+
+
+app.post("/login", async(req,res) => {
+    console.log("Received Login request:",req.body)
+    const {email,password} = req.body;
+
+    try{
+        const founduser = await User.findOne({email})
+        if(!founduser){
+            console.warn("User not found:",email)
+            return res.status(404).json({message:"User not found"})
+        }
+
+        const isValidPassword = await bcrypt.compare(password,founduser.password)
+        if(!isValidPassword){
+            console.log("Incorrect Password")
+            return res.status(404).json({message:"Incorrect Password"})
+        }
+        const token = jwt.sign({id:founduser._id},"secret",{expiresIn:"1hr"})
+        console.log("user logged in:",founduser.email)
+
+        res.status(200).json({message:"user logged in successfully".token})
+    }catch(error){
+        console.log("Error logging in:",error)
+        res.status(500).json({message:"Error logging in user"})
+    }
+})
 const upload = multer({ dest: "uploads/" });
 
 app.post("/upload", upload.single("file"), async (req, res) => {

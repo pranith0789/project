@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import TextField from '@mui/material/TextField';
+import React, { useEffect, useState } from 'react'
+import {TextField} from '@mui/material/';
 import Button from '@mui/material/Button';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -10,6 +10,7 @@ const Login = () => {
     const [email, setEmail] = useState<string>('')
     const [password, setPassword] = useState<string>('')
     const [error,setError] = useState<string>('')
+    const [message,setMessage] = useState<string>('')
 
     const handleusername = (event:React.ChangeEvent<HTMLInputElement>) => {
         setEmail(event.target.value)
@@ -53,11 +54,25 @@ const Login = () => {
         try{
             const response = await axios.post('http://localhost:3000/login',{email,password})
             console.log('login successfull',response.data)
+            setMessage(response.data.message)
+            setError('')
+            
 
         }catch(error){
             console.log('login failed',error)
+            setMessage('')
+            setError(error.response?.data?.message||"User already exist")
         }
     }
+
+    useEffect(() => {
+        if (message) {
+            const timer = setTimeout(() => {
+                navigate('/Upload');
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [message, navigate]);
   return (
     <div className="min-h-screen w-screen flex justify-center items-center bg-gray-100 bg-[url(https://wallpapers.com/images/hd/blockchain-monochrome-earth-sphere-uknrsf6rlwtyahb9.jpg)]">
       <div className="w-130 min-h-screen flex justify-center items-center text-white p-8 rounded-lg">
@@ -81,7 +96,7 @@ const Login = () => {
             className='bg-gray-50 border-solid rounded-sm w-full'
             value={password}
             onChange={handlepassword}/>
-            {error && <p className='text-red-600 text-md justify-center items-center'>{error}</p>}
+            
             <Button
                 variant="text"
                 disableElevation
@@ -106,6 +121,11 @@ const Login = () => {
                 <p className="underline cursor-pointer hover:text-blue-700" onClick={handlenavigate}>SignUp</p>
 
             </div>
+            <div>
+            {error && <p className='text-red-600 text-md justify-center items-center'>{error}</p>}
+            {/* {message && <p className='text-green-600 text-md justify-center items-center'>{message}</p>} */}
+            </div>
+            
         </div>
         
       </div>

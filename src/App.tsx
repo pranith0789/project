@@ -1,19 +1,20 @@
-// import Login from "./components/Login"
-// import SignUp from "./components/SignUp"
-// import {BrowserRouter,Routes,Route} from 'react-router-dom'
+import Login from "./components/Login"
+import SignUp from "./components/SignUp"
+import {BrowserRouter,Routes,Route} from 'react-router-dom'
 
 import Input from "./components/Input"
 function App() {
 
   return (
     <>
-    {/* <BrowserRouter>
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login/>} />
         <Route path="/signup" element={<SignUp/>} />
+        <Route path="/Upload" element={<Input/>}/>
       </Routes>
-    </BrowserRouter> */}
-      <Input></Input>
+    </BrowserRouter>
+      
     </>
   )
 }
