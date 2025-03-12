@@ -178,7 +178,10 @@ import FormData from "form-data";
 import { fileTypeFromFile } from "file-type";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import {create} from 'ipfs-http-client'
+import { json } from "stream/consumers";
 
+const ipfs = create({url:"http://127.0.0.1:5001"})
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -244,7 +247,7 @@ app.post("/login", async(req,res) => {
         const token = jwt.sign({id:founduser._id},"secret",{expiresIn:"1hr"})
         console.log("user logged in:",founduser.email)
 
-        res.status(200).json({message:"user logged in successfully".token})
+        res.status(200).json({message:"user logged in successfully",token})
     }catch(error){
         console.log("Error logging in:",error)
         res.status(500).json({message:"Error logging in user"})
@@ -276,9 +279,22 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       );
 
       const result = response.data.result || response.data.message;
+      const summary = response.data.summary || "No summary available"
+
+      const filebuffer = fs.readFileSync(filePath)
+      const ipfsFile = await ipfs.add(filebuffer)
+      console.log(ipfsFile)
       fs.unlinkSync(filePath);
 
-      res.json({ status: "success", message: result,summary:result });
+
+      const resultdata = JSON.stringify({result,summary,fileCID: ipfsFile.path})
+      const ipfsresult = await ipfs.add(resultdata)
+      console.log(ipfsresult)
+      res.json({ status: "success", 
+        message: result,
+        summary:summary,
+        fileCID: ipfsFile.path,
+        resultCID:ipfsresult.path });
   } catch (error) {
       fs.unlinkSync(filePath);
       res.status(500).json({ error: "Error processing file" });
