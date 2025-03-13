@@ -8,8 +8,18 @@ import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array
 from transformers import pipeline, AutoTokenizer, AutoModelForTokenClassification
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change this to specific frontend URL in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Load NER model
 model_name = "d4data/biomedical-ner-all"
@@ -124,7 +134,6 @@ def structured_summary(text):
 @app.post("/search-medical-terms")
 async def search_medical_terms(file: UploadFile = File(...)):
     file_path = f"temp_{file.filename}"
-
     try:
         with open(file_path, "wb") as buffer:
             buffer.write(await file.read())
@@ -172,4 +181,10 @@ async def search_medical_terms(file: UploadFile = File(...)):
             os.remove(file_path)
         print(f"❌ Error processing file: {e}")
         raise HTTPException(status_code=500, detail="Internal server error.")
+    
+@app.post("/process-image")
+async def process_image(file: UploadFile = File(...)):
+    print(f"Received file: {file.filename}")  # Debugging
+    return {"message": "File received"}
+
 
