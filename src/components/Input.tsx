@@ -5,7 +5,8 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 const Input = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [message, setMessage] = useState<string>('');
-    const [summary,setSummary] = useState<string | null>('');
+    const [summary, setSummary] = useState<string | null>(null);
+    const [fileType, setFileType] = useState<string | null>(null); // Track file type
 
     const handleInput = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files.length > 0) {
@@ -15,6 +16,7 @@ const Input = () => {
                 return;
             }
             setSelectedFile(file);
+            setFileType(file.type); // Store file type
         }
     };
 
@@ -36,17 +38,17 @@ const Input = () => {
             const data = await response.json();
             console.log("Response from FastAPI:", data);
 
-            setMessage(data.message); // "COVID Positive", "COVID Negative", or "Invalid file type"
-            setSummary(data.summary || null)
+            setMessage(data.message);
+            setSummary(fileType === "application/pdf" ? data.summary || "No summary available" : null); // Summary only for PDFs
         } catch (error) {
             console.error("Error uploading file:", error);
             setMessage("Error uploading file");
-            setSummary(null)
+            setSummary(null);
         }
     };
 
     const isValidType = (file: File): boolean => {
-        const allowed = ["image/jpg","image/png","image/jpeg","application/pdf"]
+        const allowed = ["image/jpg", "image/png", "image/jpeg", "application/pdf"];
         return allowed.includes(file.type);
     };
 
@@ -80,16 +82,23 @@ const Input = () => {
                     <div className='p-4 mt-4 text-lg font-semibold'>
                         {message === "COVID Positive" ? (
                             <div>
-                            <p className='text-red-600'>🚨 COVID Positive</p>
-                            <h3 className="text-xl font-bold">📄 Summary:</h3>
-                            <p className='text-black'>{summary}</p>
+                                <p className='text-red-600'>🚨 COVID Positive</p>
+                                {fileType === "application/pdf" && summary && (
+                                    <>
+                                        <h3 className="text-xl font-bold text-black">📄 Summary:</h3>
+                                        <p className='text-black'>{summary}</p>
+                                    </>
+                                )}
                             </div>
-                            
                         ) : message === "COVID Negative" ? (
                             <div>
-                            <p className='text-green-600'>✅ COVID Negative</p>
-                            <h3 className="text-xl font-bold">📄 Summary:</h3>
-                            <p className='text-black'>{summary}</p>
+                                <p className='text-green-600'>✅ COVID Negative</p>
+                                {fileType === "application/pdf" && summary && (
+                                    <>
+                                        <h3 className="text-xl font-bold text-black">📄 Summary:</h3>
+                                        <p className='text-black'>{summary}</p>
+                                    </>
+                                )}
                             </div>
                         ) : (
                             <p className='text-gray-600'>⚠️ {message}</p>
@@ -102,3 +111,4 @@ const Input = () => {
 };
 
 export default Input;
+

@@ -107,9 +107,11 @@ app.post("/upload", upload.single("file"), async (req, res) => {
           formData,
           { headers: formData.getHeaders() }
       );
-
+      console.log("📌 FastAPI Response:", response.data);
       const result = response.data.result || response.data.message;
-      const summary = response.data.summary || "No summary available"
+      const summary = response.data.summary ? response.data.summary : result.includes("COVID") ? null : "No summary available";
+
+
 
       const filebuffer = fs.readFileSync(filePath)
       const ipfsFile = await ipfs.add(filebuffer)
@@ -120,11 +122,22 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       const resultdata = JSON.stringify({result,summary,fileCID: ipfsFile.path})
       const ipfsresult = await ipfs.add(resultdata)
       console.log(ipfsresult)
-      res.json({ status: "success", 
+      console.log("✅ Sending response to frontend:", {
+        status: "success",
         message: result,
-        summary:summary,
+        summary: structured_data,
         fileCID: ipfsFile.path,
-        resultCID:ipfsresult.path });
+        resultCID: ipfsresult.path
+    });
+    
+    res.json({
+        status: "success",
+        message: result,
+        summary: summary,  // Include summary here
+        fileCID: ipfsFile.path,
+        resultCID: ipfsresult.path
+      });
+      
   } catch (error) {
       fs.unlinkSync(filePath);
       res.status(500).json({ error: "Error processing file" });
@@ -132,3 +145,5 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 });
 
 app.listen(3000, () => console.log("🚀 Server running on port 3000"));
+
+

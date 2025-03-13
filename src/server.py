@@ -16,7 +16,10 @@ model_name = "d4data/biomedical-ner-all"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForTokenClassification.from_pretrained(model_name)
 ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
+
+# Load Summarization Model
 summarizer = pipeline("summarization", model="t5-small")
+
 # Load CNN Model for Image Classification
 try:
     cnn_model = load_model("../cnn_covid_model.h5")
@@ -32,34 +35,33 @@ IMG_SIZE = (224, 224)
 def extract_text_from_pdf(file_path):
     try:
         doc = fitz.open(file_path)
-        return "\n".join([page.get_text("text") for page in doc if page.get_text("text")])
+        text = "\n".join([page.get_text("text") for page in doc if page.get_text("text")])
+        print(f"📄 Extracted Text: {text[:500]}...")  # Print first 500 chars for debugging
+        return text
     except Exception as e:
         print(f"❌ Error reading PDF: {e}")
         return ""
 
 # Function to detect COVID-positive terms & medical terms in PDFs
 def detect_covid_and_medical_terms(text):
-    max_chunk_length = 400  # Keep chunks under 512 tokens
     covid_keywords = {"covid", "positive", "sars-cov-2", "coronavirus", "infected"}
     medical_terms = set()
     is_covid_positive = False
 
-    # Split text into smaller chunks while keeping words intact
     words = text.split()  
+    max_chunk_length = 400
     chunks = [" ".join(words[i:i + max_chunk_length]) for i in range(0, len(words), max_chunk_length)]
 
     for chunk in chunks:
-        ner_results = ner_pipeline(chunk)  # Process chunk separately
-
+        ner_results = ner_pipeline(chunk)
         for entity in ner_results:
             word = entity["word"].lower()
             medical_terms.add(word)
             if any(keyword in word for keyword in covid_keywords):
                 is_covid_positive = True
 
+    print(f"🩺 Detected Medical Terms: {medical_terms}")
     return "COVID Positive" if is_covid_positive else "COVID Negative" if medical_terms else None
-
-
 
 # Function to predict COVID status from an image
 def predict_image(image_bytes):
@@ -75,32 +77,49 @@ def predict_image(image_bytes):
         prediction = cnn_model.predict(img_array)[0][0]
         class_label = "COVID Positive" if prediction > 0.5 else "COVID Negative"
 
+        print(f"🖼️ Image Prediction: {class_label} (Confidence: {prediction:.2f})")
         return {"status": "success", "result": class_label, "confidence": float(prediction)}
 
     except Exception as e:
         return {"status": "error", "message": f"Prediction failed: {str(e)}"}
-    
 
-def summarize_pdf(text):
-    max_chunk_length = 400  # Limit token count below 512
-    overlap = 50  # Overlapping context
+# Function to generate structured summary
+def structured_summary(text):
+    summary = summarizer(text, max_length=200, min_length=50, do_sample=False, truncation=True)[0]["summary_text"]
+    print(f"✅ Final Summary: {summary}")  # Console Log
 
-    # Tokenize the text while ensuring it doesn't exceed the limit
-    tokens = tokenizer(text, return_tensors="pt", truncation=False)["input_ids"][0].tolist()
-    
-    chunks = [tokens[i:i + max_chunk_length] for i in range(0, len(tokens), max_chunk_length - overlap)]
+    structured_data = {
+        "Patient Information": {"Name": None, "Age": None, "Gender": None, "Ethnicity": None},
+        "Medical & Psychological History": {
+            "Psychiatric Conditions": [],
+            "Physical Appearance": {"Hair": None, "Height": None, "Weight": None, "Grooming": None}
+        },
+        "Personal & Social Background": {"Marital Status": None, "Past Relationships": []}
+    }
 
-    summaries = []
-    for chunk in chunks:
-        chunk_text = tokenizer.decode(chunk, skip_special_tokens=True)
-        
-        # Ensure summarizer doesn't process text beyond limit
-        short_text = text[:1000]  # Process only the first 1000 characters
-        summary = summarizer(short_text, max_length=200, min_length=50, do_sample=False, truncation=True)
+    words = summary.split()
+    for i, word in enumerate(words):
+        if word.lower() in ["name:", "patient:", "mr.", "ms.", "mrs."]:
+            structured_data["Patient Information"]["Name"] = words[i + 1] + " " + words[i + 2]
+        if word.lower() == "age:":
+            structured_data["Patient Information"]["Age"] = words[i + 1]
+        if word.lower() in ["male", "female"]:
+            structured_data["Patient Information"]["Gender"] = word
+        if "depressive" in word.lower() or "ptsd" in word.lower():
+            structured_data["Medical & Psychological History"]["Psychiatric Conditions"].append(word)
+        if word.lower() == "height:":
+            structured_data["Medical & Psychological History"]["Physical Appearance"]["Height"] = words[i + 1]
+        if word.lower() == "weight:":
+            structured_data["Medical & Psychological History"]["Physical Appearance"]["Weight"] = words[i + 1]
+        if word.lower() == "groomed" or word.lower() == "disheveled":
+            structured_data["Medical & Psychological History"]["Physical Appearance"]["Grooming"] = word
+        if word.lower() == "married" or word.lower() == "divorced":
+            structured_data["Personal & Social Background"]["Marital Status"] = word
+        if "abuse" in word.lower():
+            structured_data["Personal & Social Background"]["Past Relationships"].append("Experienced physical abuse")
 
-        summaries.append(summary[0]['summary_text'])
-
-    return " ".join(summaries)  # Combine summarized chunks
+    print(f"📝 Structured Summary: {structured_data}")
+    return structured_data
 
 @app.post("/search-medical-terms")
 async def search_medical_terms(file: UploadFile = File(...)):
@@ -118,7 +137,6 @@ async def search_medical_terms(file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="Unsupported file type. Only PDFs and images are allowed.")
 
         if detected_mime_type == "application/pdf":
-            # Process PDF as before
             text = extract_text_from_pdf(file_path)
             os.remove(file_path)
 
@@ -126,21 +144,32 @@ async def search_medical_terms(file: UploadFile = File(...)):
                 return {"status": "error", "message": "No readable text found in the document."}
 
             result = detect_covid_and_medical_terms(text)
-            summary = summarizer(text)
+            summary = summarizer(text, max_length=200, min_length=50, do_sample=False, truncation=True)[0]["summary_text"]
+            structured_data = structured_summary(text)
+
+
             if result is None:
-                return {"status": "error", "message": "No medical terms found.","summary":summary[0]["summary_text"]}
+                return {"status": "error", "message": "No medical terms found.", "structured_summary": structured_data}
 
-            return {"status": "success", "result": result}
+            return {"status": "success", "result": result, "summary": summary, "structured_summary": structured_data}
 
-        else:  # Process Image for CNN Classification
+
+        else:
             with open(file_path, "rb") as image_file:
                 image_bytes = image_file.read()
             os.remove(file_path)
 
-            return predict_image(image_bytes)
+            prediction_result = predict_image(image_bytes)
+    
+            return {
+                "status": prediction_result["status"],
+                "result": prediction_result["result"],
+                "confidence": prediction_result.get("confidence", None)  # No summary for images
+            }
 
     except Exception as e:
         if os.path.exists(file_path):
             os.remove(file_path)
         print(f"❌ Error processing file: {e}")
         raise HTTPException(status_code=500, detail="Internal server error.")
+
