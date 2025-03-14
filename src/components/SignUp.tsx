@@ -94,7 +94,7 @@ const SignUp = () => {
 
   return (
     <div className='min-h-screen w-screen p-0 m-0 flex justify-start items-center bg-cover bg-center bg-no-repeat' 
-        style={{ backgroundImage: `url(https://media.gettyimages.com/id/1329268006/photo/digital-security-concept.jpg?s=612x612&w=gi&k=20&c=7x8_1qZE50IgnD_OAeNrRNvtsU-_6ka5JQxCTPS7eO0=)`, backgroundSize: 'cover' }}>
+        style={{ backgroundImage: `url(https://images.rawpixel.com/image_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIzLTA5L3Jhd3BpeGVsb2ZmaWNlMTVfYW5fYWJzdHJhY3RfdmlzdWFsaXphdGlvbl9vZl9hX2Jsb2NrY2hhaW5fbmV0d18zMjE0YmFlZC1lMmM0LTQzNWMtOTQ2YS1mYmM5MjM1MGUzYmFfMS5qcGc.jpg)`, backgroundSize: 'cover' }}>
         <div className='h-screen w-[350px] flex fixed left-0 top-0 justify-center items-center p-6'>
             <div className='flex flex-col gap-4 w-full'>
                 <TextField 

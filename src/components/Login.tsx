@@ -43,6 +43,10 @@ const Login = () => {
 
     const handlesubmit = async (event: React.FormEvent) => {
         event.preventDefault()
+        if(!email.trim() || !password.trim()){
+            setError("Enter valid credentials")
+            return;
+        }
         if (email.trim() && !isValidEmail(email)) {
             setError("Invalid email format:")
             return;
@@ -121,13 +125,13 @@ const Login = () => {
                     </Button>
 
                     <div className='flex flex-row gap-6 justify-center'>
-                        <p className='underline cursor-pointer'>Forgot Password?</p>
+                        <p className='underline cursor-pointer hover:text-blue-700'
+                        onClick={() => navigate("/forgotpassword")}>
+                            Forgot Password?
+                        </p>
                         <p
                             className="underline cursor-pointer hover:text-blue-700"
-                            onClick={() => {
-                                console.log("Sign Up clicked!"); // Check if this logs
-                                navigate("/signup");
-                            }}
+                            onClick={handleNavigate}
                         >
                             Sign Up
                         </p>
