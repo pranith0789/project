@@ -12,6 +12,13 @@ const Login = () => {
     const [error, setError] = useState<string>('')
     const [message, setMessage] = useState<string>('')
 
+    useEffect(() =>{
+        const token = localStorage.getItem('token')
+        if(token){
+            navigate('/Upload')
+        }
+    },[navigate])
+
     const handleusername = (event: React.ChangeEvent<HTMLInputElement>) => {
         setEmail(event.target.value)
     }
@@ -37,9 +44,6 @@ const Login = () => {
         navigate('/signup');
     };
 
-    useEffect(() => {
-        console.log("Navigation function loaded");
-    }, []);
 
     const handlesubmit = async (event: React.FormEvent) => {
         event.preventDefault()
@@ -65,6 +69,8 @@ const Login = () => {
             setMessage(response.data.message)
             setError('')
 
+            localStorage.setItem('token',response.data.token)
+            localStorage.setItem('userEmail', email)
 
         } catch (error) {
             console.log('login failed', error)
@@ -77,7 +83,7 @@ const Login = () => {
         if (message) {
             const timer = setTimeout(() => {
                 navigate('/Upload');
-            }, 5000);
+            }, 3000);
             return () => clearTimeout(timer);
         }
     }, [message, navigate]);
@@ -138,7 +144,7 @@ const Login = () => {
 
                     </div>
                 
-                    {error && <p className='text-red-600 text-md justify-center items-center'>{error}</p>}
+                    {error && <p className='text-red-700 text-md justify-center items-center'>{error}</p>}
                 
 
                 </div>

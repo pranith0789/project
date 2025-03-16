@@ -86,7 +86,7 @@ const SignUp = () => {
         if(message){
             const timer = setTimeout(() => {
                 navigate('/')
-            },5000);
+            },3000);
             return () => clearTimeout(timer)
         }
     },[message,navigate])

@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import Button from '@mui/material/Button';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-
+import { useNavigate } from 'react-router-dom';
 const Input = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [message, setMessage] = useState<string>('');
     const [summary, setSummary] = useState<string | null>(null);
     const [fileType, setFileType] = useState<string | null>(null); // Track file type
+    const navigate = useNavigate();
+
 
     const handleInput = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files.length > 0) {
             const file = event.target.files[0];
             if (!isValidType(file)) {
                 alert("Invalid file type");
+                setFileType(null)
+                setSelectedFile(null)
                 return;
             }
             setSelectedFile(file);
@@ -52,6 +56,12 @@ const Input = () => {
         return allowed.includes(file.type);
     };
 
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userEmail")
+        navigate('/')
+    }
     return (
         <div className='flex items-center justify-center min-h-screen w-screen m-0 p-0 bg-emerald-50'>
             <div className='flex flex-col items-center justify-center w-[450px] h-[500px]'>
@@ -105,6 +115,11 @@ const Input = () => {
                         )}
                     </div>
                 )}
+                <div className='p-4'>
+                    <Button variant="outlined" color="error" onClick={handleLogout} className="mt-4">
+                        Logout
+                    </Button>
+                </div>
             </div>
         </div>
     );
